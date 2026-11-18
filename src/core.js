@@ -1,6 +1,6 @@
 // Normalise common price formats without silently discarding ambiguous punctuation.
 export function parseAmount(input) {
-  if (/[A-Za-z]/.test(String(input))) return null;
+  if (/[A-Za-z+*/=()]/.test(String(input))) return null;
   let s = String(input).trim().replace(/[\s\u00a0\u202f'’]/g, '').replace(/[^\d.,-]/g, '');
   if (!s || s.includes('-') || !/\d/.test(s)) return null;
   const comma=s.lastIndexOf(','), dot=s.lastIndexOf('.');
