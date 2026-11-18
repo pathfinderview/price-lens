@@ -21,3 +21,16 @@ The current registry reports a high-severity picomatch pattern-processing adviso
 
 ## Public-host verification
 The same 12-check browser flow passed against https://pathfinderview.github.io/price-lens/, including OCR model/worker loading from the hosted subpath, synthetic-label recognition, live rates, and offline marked fallback. This verifies hosted desktop Chrome at mobile viewport size, not a physical phone or requester-device rendering.
+
+# Live-camera correction — 2026-11-18
+
+Arun clarified that the app must be live camera, not photo capture. Replaced the first-release flow:
+- No upload, shutter, snap or manual candidate step.
+- Camera remains running; serial on-device OCR processes fresh frames repeatedly.
+- Converted values are drawn at detected word bounding boxes, accounting for object-fit crop.
+- Two matching reads confirm a label; missing/stale labels clear automatically.
+- Changing currencies updates overlays without another action.
+- Camera close/visibility change releases tracks and invalidates pending recognition.
+- Live mode puts the camera first and hides the marketing introduction.
+
+Recognition uses sampled frames, not every-frame AR; speed and accuracy on physical phones remain unverified. Earlier still/photo verification above refers to superseded v1.

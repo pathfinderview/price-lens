@@ -3,7 +3,7 @@ import {createWorker} from 'tesseract.js';
 import {parseAmount,extractPrices,convert} from './core.js';
 const $=id=>document.getElementById(id);
 const currencies={INR:'🇮🇳 Indian rupee',USD:'🇺🇸 US dollar',EUR:'🇪🇺 Euro',GBP:'🇬🇧 British pound',THB:'🇹🇭 Thai baht',JPY:'🇯🇵 Japanese yen',SGD:'🇸🇬 Singapore dollar',AUD:'🇦🇺 Australian dollar',CAD:'🇨🇦 Canadian dollar',CHF:'🇨🇭 Swiss franc',CNY:'🇨🇳 Chinese yuan',HKD:'🇭🇰 Hong Kong dollar',IDR:'🇮🇩 Indonesian rupiah',KRW:'🇰🇷 South Korean won',MYR:'🇲🇾 Malaysian ringgit',NZD:'🇳🇿 New Zealand dollar',PHP:'🇵🇭 Philippine peso',SEK:'🇸🇪 Swedish krona',ZAR:'🇿🇦 South African rand',TRY:'🇹🇷 Turkish lira',NOK:'🇳🇴 Norwegian krone',DKK:'🇩🇰 Danish krone',BRL:'🇧🇷 Brazilian real',MXN:'🇲🇽 Mexican peso',PLN:'🇵🇱 Polish zloty',CZK:'🇨🇿 Czech koruna',HUF:'🇭🇺 Hungarian forint',RON:'🇷🇴 Romanian leu',ISK:'🇮🇸 Icelandic króna',ILS:'🇮🇱 Israeli shekel'};
-let stream=null,workerPromise=null,rate=null,rateDate='',rateSaved=false,requestId=0,scanning=false;
+let stream=null,workerPromise=null,rate=null,rateDate='',rateSaved=false,requestId=0;
 function read(key){try{return JSON.parse(localStorage.getItem(key))}catch{return null}}
 function save(key,value){try{localStorage.setItem(key,JSON.stringify(value))}catch{}}
 const prefs=read('price-lens-prefs')||{};
@@ -11,17 +11,70 @@ for(const id of ['from','to'])for(const [code,name]of Object.entries(currencies)
 $('from').value=currencies[prefs.from]?prefs.from:'THB';$('to').value=currencies[prefs.to]?prefs.to:'INR';
 function status(message){$('status').textContent=message;$('status').hidden=!message}
 function format(n,currency){return new Intl.NumberFormat('en-IN',{style:'currency',currency,maximumFractionDigits:currency==='JPY'||currency==='KRW'?0:2}).format(n)}
-function render(){const from=$('from').value,to=$('to').value;const symbol=new Intl.NumberFormat('en',{style:'currency',currency:from}).formatToParts(0).find(x=>x.type==='currency')?.value||from;$('source-symbol').textContent=symbol;$('source-code').textContent=from;const amount=parseAmount($('amount').value);$('amount-error').hidden=amount!==null;$('amount-error').textContent='Enter a positive price, such as 589 or 1,250.50.';const value=convert(amount,rate);$('converted').textContent=amount===null?'—':value===null?'—':format(value,to);$('rate-detail').textContent=rate?`1 ${from} = ${new Intl.NumberFormat('en-IN',{maximumFractionDigits:5}).format(rate)} ${to} · before bank fees`:'Exchange rate unavailable';$('rate-date').textContent=rate?(from===to?'Same currency':`${rateSaved?'Saved rate · ':''}Reference date ${rateDate}`):'Check your connection and refresh';}
+function render(){const from=$('from').value,to=$('to').value;const symbol=new Intl.NumberFormat('en',{style:'currency',currency:from}).formatToParts(0).find(x=>x.type==='currency')?.value||from;$('source-symbol').textContent=symbol;$('source-code').textContent=from;const amount=parseAmount($('amount').value);$('amount-error').hidden=true;$('amount-error').textContent='Enter a positive price, such as 589 or 1,250.50.';const value=convert(amount,rate);$('converted').textContent=amount===null?(stream?'Point at a price':'Open the camera'):value===null?'—':format(value,to);$('rate-detail').textContent=rate?`1 ${from} = ${new Intl.NumberFormat('en-IN',{maximumFractionDigits:5}).format(rate)} ${to} · before bank fees`:'Exchange rate unavailable';$('rate-date').textContent=rate?(from===to?'Same currency':`${rateSaved?'Saved rate · ':''}Reference date ${rateDate}`):'Check your connection and refresh';drawOverlays();}
 async function loadRate(){$('refresh').disabled=false;const id=++requestId,from=$('from').value,to=$('to').value;rate=null;rateDate='';rateSaved=false;save('price-lens-prefs',{from,to});render();if(from===to){rate=1;render();return}const cacheKey=`price-lens-rate-${from}-${to}`,cached=read(cacheKey);if(cached&&Number.isFinite(cached.rate)&&cached.rate>0&&/^\d{4}-\d{2}-\d{2}$/.test(cached.date)){rate=cached.rate;rateDate=cached.date;rateSaved=true;render()}$('refresh').disabled=true;try{const response=await fetch(`https://api.frankfurter.dev/v1/latest?base=${from}&symbols=${to}`,{cache:'no-store',signal:AbortSignal.timeout(12000)});if(!response.ok)throw Error('Rates unavailable');const data=await response.json();if(id!==requestId)return;const value=data.rates?.[to];if(!Number.isFinite(value)||value<=0||!/^\d{4}-\d{2}-\d{2}$/.test(data.date))throw Error('Invalid rate');rate=value;rateDate=data.date;rateSaved=false;save(cacheKey,{rate,date:rateDate});status('');}catch(e){if(id!==requestId)return;status(rate?'Could not refresh. Showing a saved reference rate—check its date before relying on it.':'Could not get an exchange rate for this pair. Check your connection or choose another currency.');}finally{if(id===requestId){$('refresh').disabled=false;render()}}}
 $('amount').addEventListener('input',render);for(const id of ['from','to'])$(id).addEventListener('change',loadRate);$('swap').onclick=()=>{const from=$('from').value;$('from').value=$('to').value;$('to').value=from;loadRate()};$('refresh').onclick=loadRate;
-function stopCamera(){if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;$('video').srcObject=null;$('viewfinder').classList.remove('camera-active');$('camera-controls').hidden=true;$('camera-empty').hidden=false;}
-function resetScan(){stopCamera();$('preview').hidden=true;$('scan-results').hidden=true;status('');$('photo').value='';}
-$('scan-again').onclick=resetScan;$('close-camera').onclick=stopCamera;
-$('start-camera').onclick=async()=>{if(scanning)return;status('');$('start-camera').disabled=true;try{if(!navigator.mediaDevices?.getUserMedia)throw Error('unsupported');stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});$('video').srcObject=stream;await $('video').play();$('preview').hidden=true;$('scan-results').hidden=true;$('camera-empty').hidden=true;$('camera-controls').hidden=false;$('viewfinder').classList.add('camera-active')}catch(e){stopCamera();status(e.name==='NotAllowedError'?'Camera access was declined. Allow it in your browser settings, or choose a photo instead.':e.name==='NotFoundError'?'No camera found. Choose a photo or type a price.':'Camera could not start. Use HTTPS, choose a photo, or type a price.')}finally{$('start-camera').disabled=false}};
-async function getWorker(){if(!workerPromise)workerPromise=createWorker('eng',1,{workerPath:new URL('ocr/worker.min.js',document.baseURI).href,corePath:new URL('ocr/core/',document.baseURI).href,langPath:new URL('ocr/lang/',document.baseURI).href,logger:m=>{if(m.status==='recognizing text')$('scan-progress').textContent=`Reading text · ${Math.round(m.progress*100)}%`;else $('scan-progress').textContent='Preparing on-device scanner…'}}).catch(e=>{workerPromise=null;throw e});return workerPromise}
-async function scanCanvas(){if(scanning)return;scanning=true;stopCamera();$('camera-empty').hidden=true;$('preview').hidden=false;$('scan-busy').hidden=false;$('scan-results').hidden=true;status('');try{const worker=await getWorker();const {data}=await worker.recognize($('preview'));const prices=extractPrices(data.text);$('candidates').replaceChildren();if(prices.length){for(const price of prices){const button=document.createElement('button');button.textContent=price.raw;button.onclick=()=>{$('amount').value=String(price.value);for(const b of $('candidates').children)b.classList.remove('selected');button.classList.add('selected');render()};$('candidates').append(button)}$('scan-results').hidden=false;status('Check the detected number and selected currency. Labels can also contain weights, dates and product codes.')}else{$('scan-results').hidden=false;status('No clear number found. Try a closer, sharper photo, or type the price below.')}}catch(e){$('scan-results').hidden=false;status('The scanner could not load or read this image. Check your connection and try again, or type a price.')}finally{$('scan-busy').hidden=true;scanning=false}}
-$('capture').onclick=()=>{const video=$('video');if(!video.videoWidth||scanning)return;const canvas=$('preview');const width=video.videoWidth*.8,height=video.videoHeight*.6,x=(video.videoWidth-width)/2,y=(video.videoHeight-height)/2;const scale=Math.min(2,1800/width);canvas.width=Math.round(width*scale);canvas.height=Math.round(height*scale);canvas.getContext('2d').drawImage(video,x,y,width,height,0,0,canvas.width,canvas.height);scanCanvas()};
-$('photo').onchange=async event=>{const file=event.target.files?.[0];if(!file||scanning)return;if(file.size>25*1024*1024){status('Choose an image smaller than 25 MB.');return}let url;try{url=URL.createObjectURL(file);const img=new Image();img.src=url;await img.decode();const scale=Math.min(1,2000/Math.max(img.width,img.height));const canvas=$('preview');canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);await scanCanvas()}catch(e){status('That image format could not be opened. Try a JPEG, PNG or screenshot.')}finally{if(url)URL.revokeObjectURL(url);$('photo').value=''}};
+let cameraEpoch=0, loopTimer=null, inFlight=false, detections=[], lastCandidates=[], lastRead=0;
+const scanCanvas=document.createElement('canvas');
+function clearDetections(){detections=[];lastCandidates=[];lastRead=0;$('amount').value='';render();}
+function drawOverlays(){
+  const layer=$('live-overlays');layer.replaceChildren();
+  for(const item of detections){const tag=document.createElement('div');tag.className='price-overlay';tag.style.left=`${item.x*100}%`;tag.style.top=`${item.y*100}%`;tag.style.width=`${item.w*100}%`;tag.style.height=`${item.h*100}%`;
+    const label=document.createElement('span');const value=convert(item.value,rate);label.textContent=value===null?'Rate unavailable':format(value,$('to').value);tag.append(label);layer.append(tag);}
+}
+function stopCamera(){document.body.classList.remove('live-mode');cameraEpoch++;clearTimeout(loopTimer);if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;$('video').srcObject=null;$('viewfinder').classList.remove('camera-active');$('camera-controls').hidden=true;$('camera-empty').hidden=false;$('live-state').textContent='';clearDetections();}
+$('close-camera').onclick=stopCamera;
+async function getWorker(){if(!workerPromise)workerPromise=createWorker('eng',1,{workerPath:new URL('ocr/worker.min.js',document.baseURI).href,corePath:new URL('ocr/core/',document.baseURI).href,langPath:new URL('ocr/lang/',document.baseURI).href,logger:m=>{if(stream&&m.status!=='recognizing text')$('live-state').textContent='Preparing on-device scanner…'}}).then(async worker=>{await worker.setParameters({tessedit_pageseg_mode:'11'});return worker}).catch(e=>{workerPromise=null;throw e});return workerPromise}
+function frameCandidates(data,width,height){
+  const found=[];
+  for(const block of data.blocks||[])for(const paragraph of block.paragraphs||[])for(const line of paragraph.lines||[])for(const word of line.words||[]){
+    if(word.confidence<55)continue;
+    const prices=extractPrices(word.text);if(prices.length!==1)continue;
+    const price=prices[0];const box=word.bbox;if(!box||price.value<=0)continue;
+    const item={value:price.value,raw:price.raw,x:box.x0/width,y:box.y0/height,w:(box.x1-box.x0)/width,h:(box.y1-box.y0)/height,confidence:word.confidence};
+    if(item.w>0&&item.h>0)found.push(item);
+  }
+  return found.slice(0,12);
+}
+function schedule(epoch,delay=650){clearTimeout(loopTimer);if(stream&&epoch===cameraEpoch)loopTimer=setTimeout(()=>scanLive(epoch),delay)}
+async function scanLive(epoch){
+  if(!stream||epoch!==cameraEpoch)return;
+  if(inFlight){schedule(epoch,150);return;}
+  const video=$('video'),rect=video.getBoundingClientRect();
+  if(!video.videoWidth||!rect.width||!rect.height){schedule(epoch,150);return;}
+  inFlight=true;
+  try{
+    const worker=await getWorker();if(epoch!==cameraEpoch||!stream)return;
+    // Match the visible object-fit:cover crop, so OCR coordinates align with the preview.
+    const aspect=rect.width/rect.height;let sw=video.videoWidth,sh=video.videoHeight;
+    if(sw/sh>aspect)sw=sh*aspect;else sh=sw/aspect;
+    const cw=Math.min(1100,Math.round(sw)),ch=Math.round(cw/aspect);scanCanvas.width=cw;scanCanvas.height=ch;
+    scanCanvas.getContext('2d').drawImage(video,(video.videoWidth-sw)/2,(video.videoHeight-sh)/2,sw,sh,0,0,cw,ch);
+    const {data}=await worker.recognize(scanCanvas,{}, {blocks:true,text:true});
+    if(epoch!==cameraEpoch||!stream)return;
+    const next=frameCandidates(data,cw,ch);
+    // Two consecutive readings suppress fleeting OCR guesses. Do not carry old prices onto new labels.
+    detections=next.filter(item=>lastCandidates.some(old=>old.value===item.value&&Math.abs(old.x-item.x)<.15&&Math.abs(old.y-item.y)<.15));
+    lastCandidates=next;lastRead=performance.now();
+    if(detections.length){const best=[...detections].sort((a,b)=>b.h-a.h||b.confidence-a.confidence)[0];$('amount').value=String(best.value);$('live-state').textContent='Live · check the number and currency';}
+    else{$('amount').value='';$('live-state').textContent=next.length?'Confirming price…':'Live · point at a clear price';}
+    render();
+  }catch(e){if(epoch===cameraEpoch&&stream){clearDetections();$('live-state').textContent='Scanner unavailable';status('The live scanner could not load. Check your connection and reopen the camera.');stopCamera();}}
+  finally{inFlight=false;schedule(epoch);}
+}
+// Expire labels even if a frame takes unusually long to recognise.
+setInterval(()=>{if(stream&&lastRead&&performance.now()-lastRead>2500){detections=[];$('amount').value='';render();}},400);
+$('start-camera').onclick=async()=>{
+  status('');$('start-camera').disabled=true;const epoch=++cameraEpoch;
+  try{
+    if(!navigator.mediaDevices?.getUserMedia)throw Error('unsupported');
+    const acquired=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});
+    if(epoch!==cameraEpoch||document.hidden){acquired.getTracks().forEach(t=>t.stop());return;}
+    stream=acquired;document.body.classList.add('live-mode');$('video').srcObject=stream;$('camera-empty').hidden=true;$('camera-controls').hidden=false;$('viewfinder').classList.add('camera-active');
+    await $('video').play();if(epoch!==cameraEpoch)return;clearDetections();$('live-state').textContent='Preparing on-device scanner…';scanLive(epoch);
+  }catch(e){if(epoch===cameraEpoch){stopCamera();status(e.name==='NotAllowedError'?'Allow camera access in your browser settings to scan live.':e.name==='NotFoundError'?'No camera found. Open this app on a phone with a camera.':'Camera could not start. Open the HTTPS site in Safari or Chrome and allow camera access.');}}
+  finally{$('start-camera').disabled=false;}
+};
 for(const id of ['help','privacy'])$(id).onclick=()=>$('info-dialog').showModal();$('close-info').onclick=()=>$('info-dialog').close();$('info-dialog').onclick=e=>{if(e.target===$('info-dialog')){const r=e.target.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)e.target.close()}};
 window.addEventListener('pagehide',stopCamera);document.addEventListener('visibilitychange',()=>{if(document.hidden&&stream)stopCamera()});
 loadRate();
