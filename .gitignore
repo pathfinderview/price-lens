@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+.env.*
+tests/mobile.png
+tests/scanned.png
+tests/browser-result.json
+.DS_Store
