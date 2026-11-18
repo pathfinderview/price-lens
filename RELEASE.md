@@ -34,3 +34,7 @@ Arun clarified that the app must be live camera, not photo capture. Replaced the
 - Live mode puts the camera first and hides the marketing introduction.
 
 Recognition uses sampled frames, not every-frame AR; speed and accuracy on physical phones remain unverified. Earlier still/photo verification above refers to superseded v1.
+
+# Camera-first visual redesign — 2026-11-18
+
+Replaced the interface with a coherent ink/citrus/paper system, original vector illustration, large-code native currency controls, thumb-sized camera actions, source/converted amount hierarchy and collapsed rate details. Desktop editorial layout; mobile tool-first layout. See DESIGN.md for review and evidence limits.

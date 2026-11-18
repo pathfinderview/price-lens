@@ -8,3 +8,5 @@ tests/browser-result.json
 .DS_Store
 
 tests/live.png
+
+tests/design-*.png
