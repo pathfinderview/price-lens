@@ -18,3 +18,6 @@ Source: https://github.com/pathfinderview/price-lens
 
 ## Dependency audit
 The current registry reports a high-severity picomatch pattern-processing advisory in Vite's build dependency tree; npm audit fix did not resolve it (registry latest picomatch 4.0.7 at build time). This app ships static assets only, does not publish a Vite server, and does not accept user-supplied glob patterns. Track remediation when a patched version is available; do not claim a clean dependency audit.
+
+## Public-host verification
+The same 12-check browser flow passed against https://pathfinderview.github.io/price-lens/, including OCR model/worker loading from the hosted subpath, synthetic-label recognition, live rates, and offline marked fallback. This verifies hosted desktop Chrome at mobile viewport size, not a physical phone or requester-device rendering.

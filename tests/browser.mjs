@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 const browser=await chromium.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,args:['--use-fake-ui-for-media-stream','--use-fake-device-for-media-stream']});
 const context=await browser.newContext({viewport:{width:390,height:844},permissions:['camera']});
 const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
-await page.goto('http://localhost:5178');
+await page.goto(process.env.BASE_URL || 'http://localhost:5178');
 await page.waitForFunction(()=>document.querySelector('#converted').textContent.includes('₹'),{timeout:20000});
 assert.match(await page.locator('#converted').innerText(),/₹/);
 await page.locator('#amount').fill('1,234.56');assert.match(await page.locator('#converted').innerText(),/₹/);
