@@ -38,3 +38,18 @@ Recognition uses sampled frames, not every-frame AR; speed and accuracy on physi
 # Camera-first visual redesign — 2026-11-18
 
 Replaced the interface with a coherent ink/citrus/paper system, original vector illustration, large-code native currency controls, thumb-sized camera actions, source/converted amount hierarchy and collapsed rate details. Desktop editorial layout; mobile tool-first layout. See DESIGN.md for review and evidence limits.
+
+# Pocket instrument redesign — 2026-11-18
+
+Arun raised the quality bar to a high-end traveller-focused consumer app and supplied notbor.ing as the craft reference. Philosophy documented before this pass. Replaced the previous visual system with a ceramic/graphite/persimmon instrument, original optical lens, native-feeling searchable currency sheets, intentional press/result motion and complete camera states.
+
+Verified locally:
+- Existing 13 live-camera checks, updated to exercise the actual currency picker.
+- Camera denied/missing/cancelled-late-resolution scenarios.
+- Opening, currency, help and rate screens: zero automated axe WCAG A/AA violations in Chromium at 390px. Automated checks are not a complete accessibility audit.
+- 320px, 390px, desktop and landscape screenshots inspected; primary action reachable without scrolling at tested sizes.
+- Contrast and landscape reach corrected during review.
+
+Cross-engine result: the full 13-check live-camera integration flow passed in Chromium and WebKit 27.2 using a changing synthetic MediaStream and real on-device OCR. The WebKit fixture now holds a strong reference to its injected MediaDevices binding; otherwise the engine can replace the JS wrapper during collection. An independently identified stale-session scheduling issue was fixed: an old OCR run can no longer clear a new camera session's timer.
+
+Stable result text is not rewritten each recognition cycle, avoiding repeated live-region announcements when the value has not changed. Source is formatted for maintainability. Physical-phone camera latency, autofocus and battery behavior still need device validation.

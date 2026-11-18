@@ -1,29 +1,19 @@
-# Price Lens — interface review and redesign
+# Price Lens — pocket instrument design
 
-2026-11-18. Requested by Arun: “please go through ui ux and create a beautiful one.”
+The active design supersedes the earlier ink/citrus landing-page approach. Philosophy and source references are in DESIGN-PHILOSOPHY.md.
 
-## Problems addressed
-- Initial mobile hero pushed the actual tool down the page.
-- Full currency names competed for narrow select space.
-- Repeated instructions, proof badges and rate information had similar visual priority.
-- Camera-off and camera-on states did not share a coherent design system.
-- Camera overlays needed edge-aware label placement.
+## Product priority
+A traveller sees a foreign price in a familiar currency without photos, uploads or typing. The mobile interface is the tool itself; the desktop layout rearranges the same controls rather than presenting a marketing page.
 
-## Design system
-Warm paper canvas, ink-green camera surface, citrus primary action and detections. DM Sans for controls/numbers; DM Serif Display for editorial moments. Original SVG iconography and price-tag illustration. No photographed product mockups or fake scanned results.
+## System
+- Warm ceramic housing, charcoal optical well, persimmon mechanical button.
+- Original CSS optical object and SVG identity; no borrowed brand imagery.
+- DM Sans controls, Space Grotesk prices and headings, tabular-feeling numeral hierarchy.
+- 44px action targets, explicit focus indicators, reduced-motion alternatives.
+- Searchable currency sheet: source vs home context, popular currencies, country/code search, current selection.
+- Transparent states: permission pending with cancel, OCR warm-up with progress, scanning, confirming, detected, no detection, rate unavailable, saved rate, denied camera, stopped.
+- Result arrival is short and purposeful. No forced audio or continuous decorative animation.
+- Rate summary stays visible and opens a detail sheet with date/fees and refresh.
 
-## Hierarchy
-1. Away/Home currency controls: large codes, readable currency names, native full-area pickers.
-2. Camera: one clear action before permission; live status and 44px close control after opening.
-3. Result: original amount beside home-currency label; large converted number and fee caveat.
-4. Rate metadata: disclosure, not competing with the result.
-5. Privacy/help: available without onboarding friction.
-
-Mobile is the app, not a landing page. Desktop adds contextual editorial content alongside the same working scanner. Permission errors appear directly below the camera. Detection labels switch sides near frame edges.
-
-## Verification
-- Visually inspected fresh-context 390px mobile, 1440px desktop and 320px small-screen renderings.
-- Confirmed primary camera button stays in the viewport and inside the viewfinder at checked sizes.
-- Native currency picker semantics, visible focus rings, reduced-motion treatment, semantic disclosure, help modal and live result announcements.
-- All 13 browser integration checks pass: continuous real OCR with changing synthetic video, automatic conversion, stale-label clearing, close/reopen lifecycle, four responsive widths, help and saved-rate fallback. Four unit groups pass; production build passes.
-- Physical phones, native permission dialogs, VoiceOver/TalkBack and real-world camera performance remain unverified.
+## Known validation boundary
+Real OCR is tested through a synthetic changing video stream; this is not a physical phone test. Engine and viewport checks cannot establish real iPhone camera performance, battery consumption, sunlight usability or VoiceOver behavior. Keep those distinctions in release notes.

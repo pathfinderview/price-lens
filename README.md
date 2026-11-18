@@ -21,7 +21,7 @@ This is a live-camera web beta, not a native App Store binary. OCR samples frame
 
 ## Verification
 
-`npm test` covers parsing and conversion. `node tests/browser.mjs` runs a browser integration suite against localhost:5178 (uses the macOS Chrome executable): real continuous OCR of a changing canvas video stream, automatic overlays, stale-label clearing, close/reopen lifecycle, four mobile/desktop widths, same-currency, dialogs and cached-rate fallback. No physical camera claim is implied by the synthetic camera test.
+`npm test` covers parsing and conversion. `node tests/browser.mjs` (Chrome) or `BROWSER=webkit node tests/browser.mjs` (WebKit; install with `npx playwright install webkit`) runs a browser integration suite against localhost:5178 (uses the macOS Chrome executable): real continuous OCR of a changing canvas video stream, automatic overlays, stale-label clearing, close/reopen lifecycle, four mobile/desktop widths, same-currency, dialogs and cached-rate fallback. No physical camera claim is implied by the synthetic camera test.
 
 ## Privacy
 
@@ -30,3 +30,7 @@ Camera frames never leave the browser and are not saved or recorded. The app ser
 ## Dependencies
 
 Tesseract.js (Apache-2.0), Tesseract.js-core (Apache-2.0) and English tessdata are redistributed under `public/ocr/`; see included license notices. Vite is a build-time tool, not a server shipped in the production release.
+
+## Design verification
+
+`node tests/design-review.mjs` captures key viewports and tests currency search. `node tests/camera-states.mjs` checks denied, missing and cancelled camera acquisition. `node tests/accessibility.mjs` scans opening and sheets with axe. Pass `BASE_URL` to test the deployed site. See DESIGN-PHILOSOPHY.md for the design decisions and reference.
